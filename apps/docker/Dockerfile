@@ -6,7 +6,7 @@ FROM ubuntu:$UBUNTU_VERSION AS skeleton
 
 # Note: ARG instructions defined after FROM are available in this build stage.
 # Placing ARG TZ here (after FROM) ensures it is accessible for configuring the timezone below.
-ARG TZ=Etc/UTC
+ARG TZ=Etc/PST
 ARG DOCKER=1
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -67,7 +67,7 @@ RUN apt-get update                                                     \
         build-essential ccache libtool cmake-data make cmake clang    \
         git lsb-base curl unzip default-mysql-client openssl                  \
         default-libmysqlclient-dev libboost-all-dev libssl-dev libmysql++-dev \
-        libreadline-dev zlib1g-dev libbz2-dev libncurses5-dev         \
+        libreadline-dev zlib1g-dev libbz2-dev libncurses5-dev libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY CMakeLists.txt /azerothcore/CMakeLists.txt
@@ -120,7 +120,7 @@ ENV ACORE_COMPONENT=undefined
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       libmysqlclient21 libreadline8 \
-      gettext-base default-mysql-client && \
+      gettext-base default-mysql-client libcurl4 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /azerothcore/env/dist/etc/ /azerothcore/env/ref/etc
