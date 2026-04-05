@@ -7,6 +7,7 @@ from database import (
     query_characters,
     account_exists,
     create_account as db_create_account,
+    change_account_password,
 )
 
 router = APIRouter(prefix="/account", tags=["accounts"])
@@ -15,7 +16,12 @@ router = APIRouter(prefix="/account", tags=["accounts"])
 class AccountCreate(BaseModel):
     """Account creation request model"""
     username: str = Field(..., min_length=3, max_length=32, description="Account username")
-    password: str = Field(..., min_length=8, max_length=16, description="Account password")
+    password: str = Field(..., min_length=8, max_length=32, description="Account password")
+
+
+class PasswordChange(BaseModel):
+    """Password change request model"""
+    new_password: str = Field(..., min_length=8, max_length=32, description="New account password")
 
 
 class Account(BaseModel):
@@ -65,6 +71,24 @@ async def create_account(account: AccountCreate):
             "success": True,
             "message": "Account created successfully",
             "username": account.username
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Error: {str(err)}")
+
+
+@router.put("/{account_id}/change-password", dependencies=[Depends(verify_api_key)])
+async def change_password(account_id: int, password_change: PasswordChange):
+    """Change account password by account ID"""
+    try:
+        change_account_password(account_id, password_change.new_password)
+        
+        return {
+            "success": True,
+            "message": "Password changed successfully",
+            "account_id": account_id
         }
     
     except HTTPException:

@@ -159,3 +159,55 @@ def create_account(username: str, password: str) -> bool:
         raise
     except Exception as err:
         raise HTTPException(status_code=500, detail=f"Error creating account: {str(err)}")
+
+
+def change_account_password(account_id: int, new_password: str) -> bool:
+    """Change account password with new SRP6 authentication"""
+    if not new_password:
+        raise HTTPException(status_code=400, detail="New password required")
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get the current username for this account
+        try:
+            cursor.execute(
+                "SELECT username FROM acore_auth.account WHERE id = %s",
+                (account_id,)
+            )
+            account = cursor.fetchone()
+            
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
+            
+            username = account['username']
+        finally:
+            cursor.close()
+        
+        # Generate new salt and compute new verifier
+        salt = os.urandom(32)
+        verifier = _compute_srp6_verifier(username, new_password, salt)
+        
+        # Update the database with new salt and verifier
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """UPDATE acore_auth.account 
+                   SET salt = %s, verifier = %s 
+                   WHERE id = %s""",
+                (salt, verifier, account_id)
+            )
+            conn.commit()
+            return True
+        except mysql.connector.Error as err:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(err)}")
+        finally:
+            cursor.close()
+            conn.close()
+    
+    except HTTPException:
+        raise
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Error changing password: {str(err)}")
