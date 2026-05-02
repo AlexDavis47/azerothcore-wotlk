@@ -121,6 +121,25 @@ def get_online_players() -> list:
         conn.close()
 
 
+def is_worldserver_online() -> bool:
+    """Check if the worldserver is online via the realmlist table flag"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        cursor.execute(
+            "SELECT flag FROM acore_auth.realmlist LIMIT 1"
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return False
+        # flag bit 0x2 = REALM_FLAG_OFFLINE
+        return (row["flag"] & 0x2) == 0
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def create_account(username: str, password: str) -> bool:
     """Create new WoW account with SRP6 authentication"""
     if not username or not password:
