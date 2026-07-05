@@ -709,11 +709,10 @@ struct boss_malygos : public BossAI
         DoMeleeAttackIfReady();
     }
 
-    void JustDied(Unit*  /*killer*/) override
+    void JustDied(Unit* /*killer*/) override
     {
         _JustDied();
         Talk(SAY_DEATH);
-        instance->DoUpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILL_CREATURE, NPC_MALYGOS, 1);
     }
 
     void KilledUnit(Unit* victim) override
@@ -887,7 +886,10 @@ struct npc_nexus_lord : public ScriptedAI
     {
         me->SetReactState(REACT_PASSIVE);
         timer = 0;
-        me->CastSpell(me, SPELL_TELEPORT_VISUAL, true);
+        ScheduleUniqueTimedEvent(0s, [&]
+        {
+            DoCastSelf(SPELL_TELEPORT_VISUAL, true);
+        }, EVENT_TELEPORT_VISUAL);
     }
 
     uint16 timer;
@@ -952,7 +954,10 @@ struct npc_scion_of_eternity : public ScriptedAI
     npc_scion_of_eternity(Creature* creature) : ScriptedAI(creature)
     {
         me->SetReactState(REACT_PASSIVE);
-        me->CastSpell(me, SPELL_TELEPORT_VISUAL, true);
+        ScheduleUniqueTimedEvent(0s, [&]
+        {
+            DoCastSelf(SPELL_TELEPORT_VISUAL, true);
+        }, EVENT_TELEPORT_VISUAL);
         ScheduleTimedEvent(20s, 25s, [&]
         {
             GuidVector guids;
@@ -994,6 +999,7 @@ struct npc_hover_disk : public VehicleAI
     npc_hover_disk(Creature* creature) : VehicleAI(creature)
     {
         events.Reset();
+        me->SetAnimTier(AnimTier::Fly);
     }
 
     EventMap events;
@@ -1003,6 +1009,7 @@ struct npc_hover_disk : public VehicleAI
         events.Reset();
         if (!who)
             return;
+
         if (apply)
         {
             if (who->IsPlayer())
@@ -1035,6 +1042,9 @@ struct npc_hover_disk : public VehicleAI
             me->SetDisableGravity(false);
             me->SetCanFly(false);
             me->GetMotionMaster()->MoveLand(0, me->GetPositionX(), me->GetPositionY(), 267.24f, 10.0f);
+            me->SetImmuneToNPC(true);
+            me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+            me->SetFaction(FACTION_FRIENDLY);
 
             if (who->IsPlayer())
             {
@@ -1153,7 +1163,10 @@ struct npc_alexstrasza : public ScriptedAI
 
 struct npc_eoe_wyrmrest_skytalon : public VehicleAI
 {
-    npc_eoe_wyrmrest_skytalon(Creature* creature) : VehicleAI(creature) { }
+    npc_eoe_wyrmrest_skytalon(Creature* creature) : VehicleAI(creature)
+    {
+        me->SetAnimTier(AnimTier::Fly);
+    }
 
     void IsSummonedBy(WorldObject* summoner) override
     {
